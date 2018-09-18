@@ -1,0 +1,3 @@
+package: github.com/liguoqinjim/abuyun
+import:
+- package: github.com/parnurzeal/gorequest
