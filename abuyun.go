@@ -55,6 +55,8 @@ func (app *AbuyunApp) Login() {
 		}
 	}
 
+	//log.Println("cookies:", tmpReq.Cookies())
+
 	//得到验证码
 	resp, _, errs = request.Get("https://center.abuyun.com/captcha").
 		AddCookies(tmpReq.Cookies()).
@@ -76,21 +78,32 @@ func (app *AbuyunApp) Login() {
 	defer resp.Body.Close()
 
 	//解析验证码
-	code := "1234"
+	//code := "1234"
 	if app.RuokuaiApp == nil {
 		log.Fatalf("app.RuokuaiApp nil")
 	}
-	cr,er := app.RuokuaiApp.Create("3040", "captcha.png")
-	if er != nil{
-
+	cr, er := app.RuokuaiApp.Create("3040", "captcha.png")
+	if er != nil {
+		if er.ErrorCode == "" {
+			log.Fatalf("ruokuaierror:%s", er.Error)
+		} else {
+			log.Fatalf("ruokuaierror:%s,errorcode:%s", er.Error, er.ErrorCode)
+		}
+	} else {
+		if cr.Result == "" {
+			log.Fatalf("ir error:%s", cr.Result)
+		} else {
+			log.Println("验证码为:", cr.Result)
+		}
 	}
 
 	//登录
-	_, body, errs := request.Post("https://center.abuyun.com/backend/passport/account/auth/verify").
+	resp, body, errs := request.Post("https://center.abuyun.com/backend/passport/account/auth/verify").
 		AddCookies(tmpReq.Cookies()).
-		SendStruct(&UserInfo{Name: app.Username, Pass: app.Password, Code: code, Remember: false}).
+		SendStruct(&UserInfo{Name: app.Username, Pass: app.Password, Code: cr.Result, Remember: false}).
 		End()
-	log.Println(body)
+	log.Println("body=", body)
+	log.Println("resp=", resp)
 }
 
 type UserInfo struct {

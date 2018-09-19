@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"github.com/liguoqinjim/abuyun"
+	"github.com/liguoqinjim/ruokuai"
 	"io/ioutil"
 	"log"
 )
@@ -26,6 +27,8 @@ func main() {
 		log.Fatalf("json.Unmarshal error:%v", err)
 	}
 
-	app := abuyun.New(u.Username, u.Password)
+	ruokuaiApp := ruokuai.Default(u.RuokuaiUsername, u.RuokuaiPassword)
+
+	app := abuyun.New(u.Username, u.Password).SetRuokuaiApp(ruokuaiApp)
 	app.Login()
 }
