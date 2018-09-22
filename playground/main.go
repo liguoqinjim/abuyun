@@ -30,5 +30,9 @@ func main() {
 	ruokuaiApp := ruokuai.Default(u.RuokuaiUsername, u.RuokuaiPassword)
 
 	app := abuyun.New(u.Username, u.Password).SetRuokuaiApp(ruokuaiApp)
+	defer app.Close()
+
 	app.Login()
+
+	app.GetHTTPTunnelList(abuyun.HTTP_PROXY_TYPE_DYNAMIC, 1)
 }
