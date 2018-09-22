@@ -70,7 +70,7 @@ func (app *AbuyunApp) Close() {
 		w := bufio.NewWriter(f)
 		for n, c := range app.req.Cookies() {
 			_, err := w.WriteString(c.String())
-			log.Println("保存cookie=", c.String())
+			//log.Println("保存cookie=", c.String())
 			if err != nil {
 				log.Fatalf("w.WriteString error")
 			}
@@ -91,6 +91,10 @@ func (app *AbuyunApp) SetRuokuaiApp(ruokuaiApp *ruokuai.RuoKuaiApp) *AbuyunApp {
 }
 
 func (app *AbuyunApp) Login() {
+	if len(app.req.Cookies()) > 0 {
+		return
+	}
+
 	request := gorequest.New()
 
 	resp, _, errs := request.Get("https://center.abuyun.com/login").
@@ -229,12 +233,12 @@ func (app *AbuyunApp) AccountInfo() {
 
 	body = strings.Replace(body, ")]}',", "", -1)
 	log.Println("body=", body)
-	result := &AccountInfoResult{}
+	result := &AccountResult{}
 	err := json.Unmarshal([]byte(body), result)
 	if err != nil {
 		log.Fatalf("json.Unmarshal error:%v", err)
 	}
-	log.Printf("accountInfoResult:%v", result)
+	log.Printf("accountResult:%v", result)
 }
 
 func (app *AbuyunApp) WalletInfo() {
@@ -251,12 +255,69 @@ func (app *AbuyunApp) WalletInfo() {
 
 	body = strings.Replace(body, ")]}',", "", -1)
 	log.Println("body=", body)
-	result := &WalletInfoResult{}
+	result := &WalletResult{}
 	err := json.Unmarshal([]byte(body), result)
 	if err != nil {
 		log.Fatalf("json.Unmarshal error:%v", err)
 	}
-	log.Printf("wallInfoResult:%v", result)
+	log.Printf("wallResult:%v", result)
+}
+
+func (app *AbuyunApp) OrderInfo(pageNum int) {
+	if pageNum < 1 {
+		pageNum = 1
+	}
+
+	request := gorequest.New()
+
+	//https://center.abuyun.com/backend/trade/order/profile/lists?p=1
+	_, body, errs := request.Get("https://center.abuyun.com/backend/trade/order/profile/lists").
+		Set("Referer", "https://center.abuyun.com/").
+		Param("p", strconv.Itoa(pageNum)).
+		AddCookies(app.req.Cookies()).
+		End()
+	if errs != nil {
+		log.Fatalf("errs:%v", errs)
+	}
+
+	body = strings.Replace(body, ")]}',", "", -1)
+	log.Println("body=", body)
+	result := &OrderResult{}
+	err := json.Unmarshal([]byte(body), result)
+	if err != nil {
+		log.Fatalf("json.Unmarshal error:%v", err)
+	}
+	log.Printf("orderResult:%v", result)
+	for _, v := range result.Result.Lists {
+		log.Println(v)
+	}
+}
+
+func (app *AbuyunApp) OrderDetail(tradeNo string) {
+	if tradeNo == "" {
+		return
+	}
+
+	request := gorequest.New()
+
+	//https://center.abuyun.com/backend/trade/order/profile/lists?p=1
+	_, body, errs := request.Get("https://center.abuyun.com/backend/trade/order/profile/lists").
+		Set("Referer", "https://center.abuyun.com/").
+		SendStruct(&OrderDetailReq{TradeNo: tradeNo}).
+		AddCookies(app.req.Cookies()).
+		End()
+	if errs != nil {
+		log.Fatalf("errs:%v", errs)
+	}
+
+	body = strings.Replace(body, ")]}',", "", -1)
+	log.Println("body=", body)
+	result := &OrderDetailResult{}
+	err := json.Unmarshal([]byte(body), result)
+	if err != nil {
+		log.Fatalf("json.Unmarshal error:%v", err)
+	}
+	log.Printf("orderDetailResult:%v", result)
 }
 
 type UserInfo struct {
@@ -312,7 +373,7 @@ type HTTPTunnelResult struct {
 	} `json:"result"`
 }
 
-type AccountInfoResult struct {
+type AccountResult struct {
 	Code   int `json:"code"`
 	Result struct {
 		Profile struct {
@@ -325,7 +386,7 @@ type AccountInfoResult struct {
 	} `json:"result"`
 }
 
-type WalletInfoResult struct {
+type WalletResult struct {
 	Code   int `json:"code"`
 	Result struct {
 		Wallet struct {
@@ -335,5 +396,74 @@ type WalletInfoResult struct {
 			AlipayAccount  interface{} `json:"AlipayAccount"`
 			AlipayRealName interface{} `json:"AlipayRealName"`
 		} `json:"wallet"`
+	} `json:"result"`
+}
+
+type OrderResult struct {
+	Code   int `json:"code"`
+	Result struct {
+		Current  int `json:"current"`
+		Total    int `json:"total"`
+		Capacity int `json:"capacity"`
+		Lists    []struct {
+			TradeNo       string `json:"TradeNo"`
+			OrderType     string `json:"OrderType"`
+			ProductType   string `json:"ProductType"`
+			InvoiceStatus string `json:"InvoiceStatus"`
+			Subject       string `json:"Subject"`
+			DealFee       string `json:"DealFee"`
+			PayChannel    string `json:"PayChannel"`
+			OrderStatus   string `json:"OrderStatus"`
+			PayStatus     string `json:"PayStatus"`
+			OrderTime     string `json:"OrderTime"`
+			ExpireTime    string `json:"ExpireTime"`
+			PayTime       string `json:"PayTime"`
+			CanPay        bool   `json:"CanPay"`
+		} `json:"lists"`
+	} `json:"result"`
+}
+
+type OrderDetailReq struct {
+	TradeNo string `json:"TradeNo"`
+}
+
+type OrderDetailResult struct {
+	Code   int `json:"code"`
+	Result struct {
+		Order struct {
+			OrderType   string `json:"OrderType"`
+			ProductType string `json:"ProductType"`
+			Subject     string `json:"Subject"`
+			TotalFee    string `json:"TotalFee"`
+			DealFee     string `json:"DealFee"`
+			OrderStatus string `json:"OrderStatus"`
+			PayStatus   string `json:"PayStatus"`
+			OrderTime   string `json:"OrderTime"`
+			ExpireTime  string `json:"ExpireTime"`
+			PayTime     string `json:"PayTime"`
+			CanPay      bool   `json:"CanPay"`
+		} `json:"order"`
+		Inventory []struct {
+			ItemID      string `json:"ItemId"`
+			ItemType    string `json:"ItemType"`
+			Title       string `json:"Title"`
+			Quantity    string `json:"Quantity"`
+			Periods     string `json:"Periods"`
+			RetailPrice string `json:"RetailPrice"`
+			DealPrice   string `json:"DealPrice"`
+			ExtraInfo   struct {
+				PackagePeriod string `json:"PackagePeriod"`
+			} `json:"ExtraInfo"`
+			TotalFee int `json:"TotalFee"`
+		} `json:"inventory"`
+		Wallet struct {
+			FreeBalance  int  `json:"FreeBalance"`
+			BalanceLacks bool `json:"BalanceLacks"`
+			UseBalance   bool `json:"UseBalance"`
+			Toggleable   bool `json:"Toggleable"`
+		} `json:"wallet"`
+		Discount struct {
+			CanUsePromoCode bool `json:"CanUsePromoCode"`
+		} `json:"discount"`
 	} `json:"result"`
 }

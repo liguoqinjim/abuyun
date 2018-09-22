@@ -34,5 +34,14 @@ func main() {
 
 	app.Login()
 
-	app.GetHTTPTunnelList(abuyun.HTTP_PROXY_TYPE_DYNAMIC, 1)
+	//app.GetHTTPTunnelList(abuyun.HTTP_PROXY_TYPE_DYNAMIC, 1)
+
+	//app.AccountInfo()
+
+	//app.WalletInfo()
+
+	//app.OrderInfo(1)
+	//app.OrderInfo(2)
+
+	//app.OrderDetail("P201809191718186119969945357")
 }
